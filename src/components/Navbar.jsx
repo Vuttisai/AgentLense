@@ -63,7 +63,7 @@ export default function Navbar() {
             Compare
           </button>
           <a
-            href="https://github.com"
+            href="https://github.com/Vuttisai/AgentLense"
             target="_blank"
             rel="noopener noreferrer"
             className="navbar__github"
@@ -83,6 +83,6 @@ export default function Navbar() {
           <span /><span /><span />
         </button>
       </div>
-    </nav>
+    </nav >
   )
 }

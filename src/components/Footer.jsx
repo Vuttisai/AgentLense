@@ -33,9 +33,9 @@ export default function Footer() {
           </div>
           <div className="footer__col">
             <h4 className="footer__col-title">Community</h4>
-            <a href="https://github.com" className="footer__link" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/Vuttisai/AgentLense/" className="footer__link" target="_blank" rel="noopener">GitHub</a>
             <a href="https://twitter.com" className="footer__link" target="_blank" rel="noopener">Twitter</a>
-            <a href="https://linkedin.com" className="footer__link" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://www.linkedin.com/in/saikumarvutti/" className="footer__link" target="_blank" rel="noopener">LinkedIn</a>
           </div>
           <div className="footer__col">
             <h4 className="footer__col-title">Resources</h4>

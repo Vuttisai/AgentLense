@@ -116,6 +116,97 @@
 .wf__builder-btn { white-space: nowrap; }
 .wf__builder-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Status Bar */
+.wf__status-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px var(--space-md); margin-bottom: var(--space-md);
+  background: rgba(0,0,0,0.25); border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+.wf__status-left, .wf__status-right { display: flex; align-items: center; gap: var(--space-sm); }
+.wf__status-badge {
+  font-size: 0.72rem; font-family: var(--font-mono); padding: 4px 10px;
+  border-radius: var(--radius-full); border: 1px solid;
+}
+.wf__status-badge--active { color: #4ade80; border-color: #4ade8033; background: #4ade8011; }
+.wf__status-badge--free { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(0,229,255,0.06); }
+.wf__status-badge--offline { color: var(--text-muted); border-color: var(--glass-border); background: rgba(255,255,255,0.02); }
+.wf__key-btn {
+  font-size: 0.7rem; font-family: var(--font-mono); padding: 5px 12px;
+  border-radius: var(--radius-md); border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.04); color: var(--text-secondary);
+  cursor: pointer; transition: all 0.2s;
+}
+.wf__key-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+.wf__key-btn--remove { color: #f87171; border-color: #f8717133; }
+.wf__key-btn--remove:hover { background: #f8717111; }
+
+/* API Key Panel */
+.wf__apikey-panel {
+  padding: var(--space-lg); margin-bottom: var(--space-md);
+  background: rgba(0,0,0,0.3); border: 1px solid;
+  border-radius: var(--radius-lg);
+  animation: fadeInUp 0.3s var(--ease-out-expo);
+}
+.wf__apikey-info { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: var(--space-md); line-height: 1.6; }
+.wf__apikey-form { display: flex; gap: var(--space-sm); }
+.wf__apikey-input {
+  flex: 1; padding: 10px 14px;
+  background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md); color: var(--text-primary);
+  font-family: var(--font-mono); font-size: 0.8rem; outline: none;
+}
+.wf__apikey-input:focus { border-color: var(--cyan-dim); }
+.wf__apikey-save { white-space: nowrap; }
+
+/* Provider selector */
+.wf__apikey-provider-row {
+  display: flex; align-items: center; gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.wf__provider-btns { display: flex; gap: var(--space-sm); }
+.wf__provider-btn {
+  font-size: 0.72rem; font-family: var(--font-mono); padding: 6px 14px;
+  border-radius: var(--radius-md); border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.03); color: var(--text-muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.wf__provider-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+.wf__provider-btn--active { background: rgba(255,255,255,0.06); font-weight: 600; }
+
+/* Progress Bar */
+.wf__progress {
+  margin-top: var(--space-md); animation: fadeInUp 0.3s var(--ease-out-expo);
+}
+.wf__progress-bar {
+  height: 3px; background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-full); overflow: hidden; margin-bottom: 8px;
+}
+.wf__progress-fill {
+  height: 100%; width: 40%; border-radius: var(--radius-full);
+  animation: progressSlide 1.5s ease-in-out infinite;
+}
+@keyframes progressSlide {
+  0% { transform: translateX(-100%); width: 40%; }
+  50% { width: 60%; }
+  100% { transform: translateX(300%); width: 40%; }
+}
+.wf__progress-text { font-size: 0.72rem; color: var(--text-muted); }
+
+/* Error */
+.wf__error {
+  margin-top: var(--space-md); padding: var(--space-md);
+  background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2);
+  border-radius: var(--radius-md); display: flex; align-items: center; gap: var(--space-sm);
+  font-size: 0.8rem; color: #fca5a5;
+  animation: fadeInUp 0.3s var(--ease-out-expo);
+}
+.wf__error-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+/* Tag variants */
+.tag-yellow { background: rgba(250,204,21,0.1); border-color: rgba(250,204,21,0.3); color: #fde047; }
+.tag-green { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); color: #4ade80; }
+
 /* Detected features */
 .wf__detected {
   margin-top: var(--space-md);

@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { FRAMEWORK_ARCHITECTURES, LLM_PRICING } from '../data/frameworks'
+import { FRAMEWORK_ARCHITECTURES, LLM_PRICING, FRAMEWORKS } from '../data/frameworks'
 import { parseRequirements, generateDynamicWorkflow } from '../data/workflowEngine'
+import {
+  generateWorkflowWithAI, getRemainingQuota, getUserApiKey, setUserApiKey,
+  getSelectedProvider, setSelectedProvider, PROVIDERS, DAILY_LIMIT, getActiveApiKey
+} from '../data/geminiWorkflow'
 import './AnimatedWorkflow.css'
 
 /* ─── SVG Circuit Edge with animated particle ─── */
@@ -212,36 +216,204 @@ function CostBreakdown({ costs, color }) {
   )
 }
 
-/* ─── Custom Requirement Builder ─── */
+/* ─── Custom Requirement Builder (AI-Powered) ─── */
 function RequirementBuilder({ framework, color }) {
   const [requirements, setRequirements] = useState('')
   const [llmId, setLlmId] = useState('gpt-4o')
   const [dynamicResult, setDynamicResult] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState(null)
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false)
+  const [currentProvider, setCurrentProvider] = useState(getSelectedProvider())
+  const [apiKeyInput, setApiKeyInput] = useState(getUserApiKey(getSelectedProvider()))
+  const [remainingQuota, setRemainingQuota] = useState(getRemainingQuota())
+  const [generationSource, setGenerationSource] = useState(null)
+  const [progress, setProgress] = useState('')
 
-  const handleGenerate = () => {
+  const fw = FRAMEWORKS.find(f => f.id === framework.id)
+  const llm = LLM_PRICING.find(l => l.id === llmId)
+  const [hasUserKey, setHasUserKey] = useState(!!getUserApiKey(getSelectedProvider()))
+
+  // Update form state when provider is clicked
+  const handleSelectProvider = (provId) => {
+    setSelectedProvider(provId)
+    setCurrentProvider(provId)
+    const storedKey = getUserApiKey(provId)
+    setApiKeyInput(storedKey)
+    setHasUserKey(!!storedKey)
+  }
+
+  const handleSaveApiKey = () => {
+    setUserApiKey(currentProvider, apiKeyInput.trim())
+    setHasUserKey(true)
+    setShowApiKeyInput(false)
+    setError(null)
+  }
+
+  const handleClearApiKey = () => {
+    setUserApiKey(currentProvider, '')
+    setApiKeyInput('')
+    setHasUserKey(false)
+  }
+
+  const handleGenerate = async () => {
     if (!requirements.trim()) return
     setIsGenerating(true)
-    // Small delay for UX
-    setTimeout(() => {
+    setError(null)
+    setProgress('🔍 Analyzing requirements...')
+
+    // If no API key available at all across any provider, fall back to local engine
+    const activeKeyContext = getActiveApiKey()
+    if (!activeKeyContext.key) {
+      setProgress('⚙️ Using local analysis engine...')
+      setTimeout(() => {
+        const parsed = parseRequirements(requirements)
+        const result = generateDynamicWorkflow(parsed, framework.id, llmId)
+        setDynamicResult(result)
+        setGenerationSource('local')
+        setIsGenerating(false)
+        setProgress('')
+      }, 600)
+      return
+    }
+
+    try {
+      setProgress('🧠 AI is analyzing your requirements...')
+      await new Promise(r => setTimeout(r, 500))
+
+      // Retry logic for 429 rate limits (up to 2 retries with backoff)
+      let result = null
+      let retries = 0
+      const maxRetries = 2
+
+      while (retries <= maxRetries) {
+        setProgress(retries > 0
+          ? `🔄 Retrying... (attempt ${retries + 1}/${maxRetries + 1})`
+          : '🔧 Generating workflow architecture...')
+
+        result = await generateWorkflowWithAI(
+          requirements,
+          fw?.name || framework.id,
+          llm?.name || llmId,
+          framework.id
+        )
+
+        // If 429 and we have retries left, wait and retry
+        if (result.error === 'rate_limited' && retries < maxRetries) {
+          const waitSec = 2 * (retries + 1)
+          setProgress(`⏳ Rate limited, waiting ${waitSec}s before retry...`)
+          await new Promise(r => setTimeout(r, waitSec * 1000))
+          retries++
+          continue
+        }
+        break
+      }
+
+      if (result.error) {
+        setError(result.message)
+        if (result.error === 'rate_limited' || result.error === 'no_key' || result.error === 'invalid_key') {
+          setShowApiKeyInput(true)
+        }
+        // Fall back to local engine
+        setProgress('⚙️ Falling back to local engine...')
+        await new Promise(r => setTimeout(r, 300))
+        const parsed = parseRequirements(requirements)
+        const localResult = generateDynamicWorkflow(parsed, framework.id, llmId)
+        setDynamicResult(localResult)
+        setGenerationSource('local-fallback')
+      } else {
+        setDynamicResult(result.data)
+        setGenerationSource('ai')
+        if (result.remaining !== null) {
+          setRemainingQuota(result.remaining)
+        }
+      }
+    } catch (e) {
+      setError(`Unexpected error: ${e.message}`)
       const parsed = parseRequirements(requirements)
-      const result = generateDynamicWorkflow(parsed, framework.id, llmId)
-      setDynamicResult(result)
-      setIsGenerating(false)
-    }, 600)
+      const localResult = generateDynamicWorkflow(parsed, framework.id, llmId)
+      setDynamicResult(localResult)
+      setGenerationSource('local-fallback')
+    }
+
+    setIsGenerating(false)
+    setProgress('')
   }
 
   return (
     <div className="wf__builder">
       <div className="wf__builder-header">
-        <span className="section-label" style={{ marginBottom: 0 }}>🔧 CUSTOM WORKFLOW GENERATOR</span>
-        <p className="wf__builder-subtitle">Describe your actual requirements — we'll generate a unique workflow architecture with realistic cost & time estimates.</p>
+        <span className="section-label" style={{ marginBottom: 0 }}>🔧 AI-POWERED WORKFLOW GENERATOR</span>
+        <p className="wf__builder-subtitle">Describe your actual requirements — our AI will analyze and generate a unique, production-grade workflow architecture with real tools, costs & development roadmap.</p>
       </div>
+
+      {/* API Key Status Bar */}
+      <div className="wf__status-bar">
+        <div className="wf__status-left">
+          {hasUserKey ? (
+            <span className="wf__status-badge wf__status-badge--active">🔑 Your API Key — Unlimited</span>
+          ) : (currentProvider === 'gemini' && import.meta.env.VITE_GEMINI_API_KEY) || 
+              (currentProvider === 'openrouter' && import.meta.env.VITE_OPENROUTER_API_KEY) || 
+              (currentProvider === 'groq' && import.meta.env.VITE_GROQ_API_KEY) ? (
+            <span className="wf__status-badge wf__status-badge--free">✨ Free Tier: {remainingQuota}/{DAILY_LIMIT} remaining today</span>
+          ) : (
+            <span className="wf__status-badge wf__status-badge--offline">⚡ Local Analysis — Add API key for AI generation</span>
+          )}
+        </div>
+        <div className="wf__status-right">
+          {hasUserKey ? (
+            <button className="wf__key-btn wf__key-btn--remove" onClick={handleClearApiKey}>Remove Key</button>
+          ) : (
+            <button className="wf__key-btn" onClick={() => setShowApiKeyInput(!showApiKeyInput)}>
+              {showApiKeyInput ? 'Cancel' : '🔑 Add API Key'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* API Key Input Panel */}
+      {showApiKeyInput && (() => {
+        const providerInfo = PROVIDERS[currentProvider]
+        return (
+          <div className="wf__apikey-panel" style={{ borderColor: `${color}33` }}>
+            <div className="wf__apikey-provider-row">
+              <label className="wf__builder-label" style={{ marginBottom: 0 }}>AI Provider</label>
+              <div className="wf__provider-btns">
+                {Object.entries(PROVIDERS).map(([id, prov]) => (
+                  <button key={id}
+                    className={`wf__provider-btn ${currentProvider === id ? 'wf__provider-btn--active' : ''}`}
+                    style={currentProvider === id ? { borderColor: color, color } : {}}
+                    onClick={() => handleSelectProvider(id)}>
+                    {prov.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="wf__apikey-info">
+              Get a <strong>free</strong> API key at{' '}
+              <a href={providerInfo.keyUrl} target="_blank" rel="noopener noreferrer" style={{ color }}>{providerInfo.keyUrl.replace('https://', '')}</a>
+              {' '}— {currentProvider === 'openrouter' ? 'free models with generous rate limits' : 'unlimited AI workflow generation'}.
+            </p>
+            <div className="wf__apikey-form">
+              <input
+                type="password"
+                className="wf__apikey-input"
+                placeholder={providerInfo.keyPlaceholder}
+                value={apiKeyInput}
+                onChange={e => setApiKeyInput(e.target.value)}
+              />
+              <button className="btn-primary wf__apikey-save" onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>
+                Save Key
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="wf__builder-form">
         <textarea
           className="wf__builder-textarea"
-          placeholder={`Describe your project in detail...\n\nExample: "I need a multi-agent system that researches competitor products from 5 websites, analyzes pricing data, compares features, and generates a weekly PDF report with charts. It needs to handle 100 requests/day and send Slack notifications when price changes are detected."`}
+          placeholder={`Describe your project in detail...\n\nExamples:\n• "I need a multi-agent framework for a construction company to handle project bidding, resource scheduling, compliance checking, and safety monitoring"\n• "Build an AI system that monitors social media for brand mentions, analyzes sentiment, and auto-generates response drafts"\n• "Create a customer onboarding automation that verifies documents, runs KYC checks, and sets up accounts"`}
           value={requirements}
           onChange={e => setRequirements(e.target.value)}
           rows={5}
@@ -260,19 +432,66 @@ function RequirementBuilder({ framework, color }) {
           </div>
           <button className="btn-primary wf__builder-btn" onClick={handleGenerate}
             disabled={!requirements.trim() || isGenerating}>
-            {isGenerating ? '⏳ Analyzing...' : '⚡ Generate Custom Workflow'}
+            {isGenerating ? '⏳ AI Analyzing...' : '⚡ Generate Custom Workflow'}
           </button>
         </div>
       </div>
 
-      {/* Detected features badge */}
+      {/* Loading Progress */}
+      {isGenerating && (
+        <div className="wf__progress">
+          <div className="wf__progress-bar">
+            <div className="wf__progress-fill" style={{ background: color }} />
+          </div>
+          <span className="wf__progress-text mono">{progress}</span>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="wf__error" style={error.includes('Present Built-in limit') ? { padding: 'var(--space-lg)', border: `1px solid ${color}66`, background: 'rgba(0,0,0,0.4)', borderRadius: 'var(--radius-lg)' } : {}}>
+          {error.includes('Present Built-in limit') ? (
+            <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
+              <span className="wf__error-icon" style={{ fontSize: '1.8rem', color: color }}>✨</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', letterSpacing: '0.5px' }}>
+                  Present API limit may exceed.
+                </strong>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  You can use your API for seamless experience. Include every provider API key to add <br/>
+                  <span style={{ color: color, opacity: 0.9 }}>(user can add any API key based on his requirement)</span>.
+                </p>
+                <div style={{ marginTop: 'var(--space-sm)' }}>
+                  <button className="btn-primary" onClick={() => setShowApiKeyInput(true)} style={{ padding: '6px 12px', fontSize: '0.75rem', background: `${color}22`, border: `1px solid ${color}88`, color }}>
+                    🔑 Connect Your Provider
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <span className="wf__error-icon">⚠️</span>
+              <span>{error}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Generation Source Badge */}
       {dynamicResult && (
         <div className="wf__detected">
           <div className="wf__detected-row">
-            <span className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>DETECTED:</span>
-            {dynamicResult.useCaseId && <span className="tag tag-green">{dynamicResult.useCaseId.replace(/_/g, ' ')}</span>}
-            <span className="tag tag-cyan">{dynamicResult.complexity} complexity</span>
-            <span className="tag tag-purple">{dynamicResult.frequency} frequency</span>
+            <span className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>GENERATED BY:</span>
+            {generationSource === 'ai' ? (
+              <span className="tag tag-green">🧠 Gemini AI Analysis</span>
+            ) : generationSource === 'local-fallback' ? (
+              <span className="tag tag-yellow">⚡ Local Engine (AI unavailable)</span>
+            ) : (
+              <span className="tag tag-cyan">⚡ Local Template Engine</span>
+            )}
+            {dynamicResult.useCaseId && <span className="tag tag-cyan">{dynamicResult.useCaseId.replace(/_/g, ' ')}</span>}
+            <span className="tag tag-purple">{dynamicResult.complexity} complexity</span>
+            {dynamicResult.aiGenerated && <span className="tag tag-green">AI-Generated</span>}
           </div>
         </div>
       )}
@@ -284,7 +503,11 @@ function RequirementBuilder({ framework, color }) {
             <span className="section-label" style={{ marginBottom: 0 }}>
               🧬 YOUR CUSTOM ARCHITECTURE — {dynamicResult.title.toUpperCase()}
             </span>
-            <p className="wf__hint mono">This workflow was generated from your requirements. Click any node for details.</p>
+            <p className="wf__hint mono">
+              {generationSource === 'ai'
+                ? 'This architecture was generated by AI analysis of your requirements. Click any node for details.'
+                : 'This workflow was generated from local analysis. Add a Gemini API key for AI-powered generation.'}
+            </p>
           </div>
           <WorkflowDiagram arch={dynamicResult} color={color} frameworkId={`custom-${framework.id}`} />
           <ExampleTrace trace={dynamicResult.exampleTrace} color={color} />
