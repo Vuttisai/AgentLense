@@ -1,7 +1,16 @@
 {
   "name": "agentlens",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "AI Agent Framework Advisor — Discover, compare, and generate production-grade multi-agent architectures with real cost estimates",
+  "author": "Sai Kumar Vutti",
+  "license": "MIT",
+  "homepage": "https://agentlens.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vuttisai/AgentLense.git"
+  },
+  "keywords": ["ai-agents", "multi-agent", "langchain", "crewai", "autogen", "workflow", "llm"],
   "type": "module",
   "scripts": {
     "dev": "vite",

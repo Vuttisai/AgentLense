@@ -30,29 +30,29 @@ export default function Footer() {
             <a href="#analyzer" className="footer__link">Stack Analyzer</a>
             <a href="#frameworks" className="footer__link">Frameworks</a>
             <a href="#compare" className="footer__link">Compare</a>
+            <a href="#cost-calculator" className="footer__link">Cost Calculator</a>
           </div>
           <div className="footer__col">
             <h4 className="footer__col-title">Community</h4>
-            <a href="https://github.com/Vuttisai/AgentLense/" className="footer__link" target="_blank" rel="noopener">GitHub</a>
-            <a href="https://twitter.com" className="footer__link" target="_blank" rel="noopener">Twitter</a>
-            <a href="https://www.linkedin.com/in/saikumarvutti/" className="footer__link" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://github.com/Vuttisai/AgentLense/" className="footer__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://www.linkedin.com/in/saikumarvutti/" className="footer__link" target="_blank" rel="noopener noreferrer">LinkedIn</a>
           </div>
           <div className="footer__col">
             <h4 className="footer__col-title">Resources</h4>
-            <a href="#" className="footer__link">Blog</a>
-            <a href="#" className="footer__link">API Docs</a>
-            <a href="#" className="footer__link">Changelog</a>
+            <a href="https://github.com/Vuttisai/AgentLense/#readme" className="footer__link" target="_blank" rel="noopener noreferrer">Documentation</a>
+            <a href="https://github.com/Vuttisai/AgentLense/issues" className="footer__link" target="_blank" rel="noopener noreferrer">Report Bug</a>
           </div>
         </div>
 
         <div className="footer__bottom">
           <p className="footer__copyright mono">
-            © 2026 AgentLens · Built with ❤️ for the Agentic AI community
+            © {new Date().getFullYear()} AgentLens · Built with ❤️ by{' '}
+            <a href="https://www.linkedin.com/in/saikumarvutti/" target="_blank" rel="noopener noreferrer" style={{ color: '#00e5ff' }}>Sai Kumar Vutti</a>
           </p>
           <div className="footer__built-with">
             <span className="footer__tech-badge">React</span>
-            <span className="footer__tech-badge">Three.js</span>
             <span className="footer__tech-badge">Vite</span>
+            <span className="footer__tech-badge">7+ AI Providers</span>
           </div>
         </div>
       </div>
