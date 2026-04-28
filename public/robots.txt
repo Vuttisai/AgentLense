@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://agentlens.app/sitemap.xml
+Sitemap: https://agentlense.vercel.app/sitemap.xml
